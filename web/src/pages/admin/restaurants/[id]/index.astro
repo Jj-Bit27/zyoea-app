@@ -1,0 +1,16 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import RestauranteDetalles from "../../../../components/admin/RestaurantDetalles";
+
+// Obtenemos el ID de la URL
+const { id } = Astro.params;
+
+// Si no hay ID, podríamos redirigir o mostrar error
+if (!id) {
+  return Astro.redirect("/admin/restaurants");
+}
+---
+
+<AdminLayout title={`Restaurante: ${id} - Admin`}>
+  <RestauranteDetalles id={id} client:load />
+</AdminLayout>

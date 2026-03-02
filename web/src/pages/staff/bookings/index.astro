@@ -1,0 +1,8 @@
+---
+import StaffLayout from "../../../layouts/StaffLayout.astro";
+import { BookingsManager } from "../../../components/staff/BookingManager";
+---
+
+<StaffLayout title="Gestión de Reservas">
+  <BookingsManager client:load />
+</StaffLayout>

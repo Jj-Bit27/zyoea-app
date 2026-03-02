@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { Navbar } from "../../components/layout/Navbar";
+import { Footer } from "../../components/layout/Footer";
+import BookingManager from "../../components/booking/BookingManager";
+---
+
+<Layout title="Mis Reservaciones - FoodApp">
+  <div class="flex min-h-screen flex-col bg-background">
+    <Navbar client:load />
+    <main class="flex-1">
+      <BookingManager client:load />
+    </main>
+    <Footer />
+  </div>
+</Layout>

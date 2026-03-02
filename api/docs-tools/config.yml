@@ -1,0 +1,16 @@
+spectaql:
+  targetDir: ./public
+
+introspection:
+  schemaFile: ../graph/schema.graphqls
+  removeTrailingPeriod: true
+
+servers:
+  - url: http://localhost:8080/query
+    description: Servidor Local (Desarrollo)
+    production: false
+
+info:
+  title: API Zyoea
+  description: Documentación oficial para Frontend y Móvil.
+  version: 1.0
