@@ -26,8 +26,8 @@ func NewService(db *pgxpool.Pool) *Service {
 func (s *Service) Create(ctx context.Context, input model.CreateTableInput) (*model.Table, error) {
 	var id int
 	sql := `
-		INSERT INTO tables (restaurant, booking, "number", capacity, "status")
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO tables (restaurant, "number", capacity, "status")
+		VALUES ($1, $2, $3, $4)
 		RETURNING id
 	`
 
@@ -171,7 +171,7 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 		return false, fmt.Errorf("ID inválido: %w", err)
 	}
 
-	sql := `DELETE FROM reviews WHERE id = $1`
+	sql := `DELETE FROM tables WHERE id = $1`
 
 	tag, err := s.DB.Exec(ctx, sql, dbID)
 	if err != nil {

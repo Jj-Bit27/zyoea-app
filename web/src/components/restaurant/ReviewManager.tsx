@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { IoAdd, IoStar, IoTrash, IoPencil } from 'react-icons/io5'
 import { Card, CardContent } from '../custom/Card'
 import { Button } from '../custom/Button'
@@ -8,31 +8,32 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '../custom/Modal'
 import { Input } from '../custom/Input'
 import { Textarea } from '../custom/Textarea'
 import { EmptyState } from '../custom/EmptyState'
+import { Spinner } from '../custom/Spinner'
 import { useToast } from '../custom/Toast'
 import { useAuth } from '../../context/AuthContext'
-import { reviews as initialReviews } from '../../libs/mock-data'
-import type { Review } from '../../types'
+import { useReviews } from '../../hooks/useReviews'
+import { ApolloWrapper } from '../ApolloWrapper'
 
-export default function ReviewManager({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
+function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
   const { user } = useAuth()
   const { showToast } = useToast()
+  const { reviews, loading, error, createReview, updateReview, deleteReview } = useReviews(restaurantId)
 
-  const [reviews, setReviews] = useState<Review[]>(initialReviews)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingReview, setEditingReview] = useState<Review | null>(null)
+  const [editingReview, setEditingReview] = useState<any | null>(null)
   const [newReview, setNewReview] = useState({ title: '', content: '', rating: 5 })
 
-  const restaurantReviews = useMemo(() => reviews.filter((r) => r.restaurantId === restaurantId), [restaurantId, reviews])
-  const userReview = useMemo(() => restaurantReviews.find((r) => r.userId === user?.id), [restaurantReviews, user?.id])
+  const restaurantReviews = reviews.filter((r: any) => String(r.restaurantId) === String(restaurantId))
+  const userReview = restaurantReviews.find((r: any) => String(r.userId) === String(user?.id))
 
   const averageRating = restaurantReviews.length > 0
-    ? restaurantReviews.reduce((sum, r) => sum + r.rating, 0) / restaurantReviews.length
+    ? restaurantReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / restaurantReviews.length
     : 0
 
-  const handleOpenModal = (review?: Review) => {
+  const handleOpenModal = (review?: any) => {
     if (review) {
       setEditingReview(review)
-      setNewReview({ title: review.title, content: review.content, rating: review.rating })
+      setNewReview({ title: '', content: review.comment, rating: review.rating })
     } else {
       setEditingReview(null)
       setNewReview({ title: '', content: '', rating: 5 })
@@ -41,20 +42,38 @@ export default function ReviewManager({ restaurantId, restaurantName }: { restau
   }
 
   const handleSubmitReview = () => {
-    if (!newReview.title.trim() || !newReview.content.trim()) {
+    if (!newReview.content.trim()) {
       showToast('Completa todos los campos', 'error')
+      return
+    }
+    if (!user) {
+      showToast('Inicia sesión para publicar una reseña', 'error')
       return
     }
 
     if (editingReview) {
-      setReviews(reviews.map((r) => r.id === editingReview.id ? { ...r, ...newReview, updatedAt: new Date() } : r))
-      showToast('Reseña actualizada', 'success')
+      updateReview(editingReview.id, { rating: newReview.rating, comment: newReview.content })
     } else {
-      const review: any = { id: Date.now().toString(), userId: user?.id, user, restaurantId, ...newReview, createdAt: new Date() }
-      setReviews([review, ...reviews])
-      showToast('Reseña publicada', 'success')
+      createReview({
+        restaurant: parseInt(restaurantId),
+        user: parseInt(user.id),
+        rating: newReview.rating,
+        comment: newReview.content,
+      })
     }
     setIsModalOpen(false)
+  }
+
+  if (loading) {
+    return <Spinner size="lg" message="Cargando reseñas..." className="py-12" />
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-destructive/10 text-destructive rounded-lg text-center">
+        Error al cargar reseñas: {error.message}
+      </div>
+    )
   }
 
   return (
@@ -77,7 +96,7 @@ export default function ReviewManager({ restaurantId, restaurantName }: { restau
         <EmptyState icon={IoStar} title="Aún no hay reseñas" description="Sé el primero en compartir tu experiencia" action={user ? { label: 'Escribir Reseña', onClick: () => handleOpenModal() } : undefined} />
       ) : (
         <div className="space-y-4">
-          {restaurantReviews.map((review) => (
+          {restaurantReviews.map((review: any) => (
             <Card key={review.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
@@ -88,18 +107,17 @@ export default function ReviewManager({ restaurantId, restaurantName }: { restau
                         <p className="font-semibold">{review.user?.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Rating value={review.rating} size="sm" />
-                          <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(review.date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                         </div>
                       </div>
-                      {review.userId === user?.id && (
+                      {String(review.userId) === String(user?.id) && (
                         <div className="flex gap-1">
                           <button onClick={() => handleOpenModal(review)} className="p-1.5 hover:bg-secondary rounded"><IoPencil className="h-4 w-4" /></button>
-                          <button onClick={() => setReviews(reviews.filter(r => r.id !== review.id))} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><IoTrash className="h-4 w-4" /></button>
+                          <button onClick={() => deleteReview(review.id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><IoTrash className="h-4 w-4" /></button>
                         </div>
                       )}
                     </div>
-                    <h3 className="mt-3 font-medium">{review.title}</h3>
-                    <p className="mt-2 text-muted-foreground">{review.content}</p>
+                    <p className="mt-3 text-muted-foreground">{review.comment}</p>
                   </div>
                 </div>
               </CardContent>
@@ -113,7 +131,6 @@ export default function ReviewManager({ restaurantId, restaurantName }: { restau
         <ModalBody>
           <div className="space-y-4">
             <Rating value={newReview.rating} size="lg" interactive onChange={(v) => setNewReview({ ...newReview, rating: v })} />
-            <Input label="Título" value={newReview.title} onChange={(e) => setNewReview({ ...newReview, title: e.target.value })} />
             <Textarea label="Tu reseña" value={newReview.content} onChange={(e) => setNewReview({ ...newReview, content: e.target.value })} />
           </div>
         </ModalBody>
@@ -123,5 +140,13 @@ export default function ReviewManager({ restaurantId, restaurantName }: { restau
         </ModalFooter>
       </Modal>
     </>
+  )
+}
+
+export default function ReviewManager({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
+  return (
+    <ApolloWrapper>
+      <ReviewManagerContent restaurantId={restaurantId} restaurantName={restaurantName} />
+    </ApolloWrapper>
   )
 }

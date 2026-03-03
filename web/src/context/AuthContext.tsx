@@ -1,5 +1,7 @@
-import { atom, map } from 'nanostores';
+import { atom } from 'nanostores';
 import { useStore } from '@nanostores/react';
+import { gql } from '@apollo/client';
+import { getApolloClient } from '../libs/apollo';
 import { addToast } from '../components/custom/Toast';
 
 // Tipos
@@ -29,57 +31,86 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// --- GraphQL Mutations ---
+const LOGIN_MUTATION = gql`
+  mutation Login($input: LoginInput!) {
+    login(input: $input) {
+      accessToken
+      user {
+        id
+        name
+        email
+        role
+      }
+      restaurant
+    }
+  }
+`;
+
+const REGISTER_MUTATION = gql`
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      accessToken
+      user {
+        id
+        name
+        email
+        role
+      }
+    }
+  }
+`;
+
 // --- 3. Acciones de Autenticación ---
 
 export const login = async (email: string, password: string) => {
-  // SIMULACIÓN DE API
-  // Aquí harías tu fetch('/api/auth/login', ...)
-  
-  return new Promise<void>((resolve, reject) => {
-    setTimeout(() => {
-      // Simulación de credenciales (Hardcoded para demo)
-      if (email === 'admin@foodapp.com' && password === 'admin123') {
-        const user: User = { id: '1', name: 'Super Admin', email, role: 'superadmin' };
-        $user.set(user);
-        localStorage.setItem('foodapp_user', JSON.stringify(user));
-        addToast(`Bienvenido de nuevo, ${user.name}`, 'success');
-        resolve();
-      } else if (email === 'staff@foodapp.com' && password === 'staff123') {
-        const user: User = { id: '2', name: 'Carlos Staff', email, role: 'admin' }; // Dueño restaurante
-        $user.set(user);
-        localStorage.setItem('foodapp_user', JSON.stringify(user));
-        addToast(`Hola ${user.name}`, 'success');
-        resolve();
-      } else if (email === 'cliente@foodapp.com' && password === '123456') {
-        const user: User = { id: '3', name: 'Juan Cliente', email, role: 'client' };
-        $user.set(user);
-        localStorage.setItem('foodapp_user', JSON.stringify(user));
-        addToast(`Bienvenido ${user.name}`, 'success');
-        resolve();
-      } else {
-        addToast('Credenciales incorrectas', 'error');
-        reject(new Error('Credenciales inválidas'));
-      }
-    }, 1000);
+  const client = getApolloClient();
+  const result = await client.mutate({
+    mutation: LOGIN_MUTATION,
+    variables: { input: { email, password } },
   });
+
+  const { accessToken, user, restaurant } = result.data.login;
+  const mappedUser: User = {
+    id: user.id,
+    name: user.name ?? '',
+    email: user.email ?? '',
+    role: user.role as User['role'],
+  };
+  $user.set(mappedUser);
+  localStorage.setItem('foodapp_user', JSON.stringify(mappedUser));
+  localStorage.setItem('foodapp_token', accessToken);
+  if (restaurant) {
+    localStorage.setItem('foodapp_restaurant', String(restaurant));
+  }
+  addToast(`Bienvenido de nuevo, ${mappedUser.name}`, 'success');
 };
 
 export const register = async (name: string, email: string, password: string) => {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => {
-      // Simular registro exitoso
-      const user: User = { id: Date.now().toString(), name, email, role: 'client' };
-      $user.set(user);
-      localStorage.setItem('foodapp_user', JSON.stringify(user));
-      addToast('Cuenta creada exitosamente', 'success');
-      resolve();
-    }, 1000);
+  const client = getApolloClient();
+  const result = await client.mutate({
+    mutation: REGISTER_MUTATION,
+    variables: { input: { name, email, password, role: 'client' } },
   });
+
+  const { accessToken, user } = result.data.register;
+  const mappedUser: User = {
+    id: user.id,
+    name: user.name ?? '',
+    email: user.email ?? '',
+    role: user.role as User['role'],
+  };
+  $user.set(mappedUser);
+  localStorage.setItem('foodapp_user', JSON.stringify(mappedUser));
+  localStorage.setItem('foodapp_token', accessToken);
+  addToast('Cuenta creada exitosamente', 'success');
 };
 
 export const logout = () => {
   $user.set(null);
   localStorage.removeItem('foodapp_user');
+  localStorage.removeItem('foodapp_token');
+  localStorage.removeItem('foodapp_restaurant');
   addToast('Sesión cerrada', 'info');
   // Redirigir al home o login
   window.location.href = '/login';

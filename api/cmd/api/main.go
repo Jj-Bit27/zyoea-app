@@ -48,7 +48,7 @@ func main() {
 	rdb := database.NewRedisClient()
 
 	// --- Configuracion de Stripe ---
-	stripeKey := "sk_test_51SvSWPGT8VYENC0tigp2I5dbBL1UpT7YLxZkDc1RGUgy1yiIErkuWv2CId9H3TybfGsVqJ8e2q3E0T4TdqfhjEz400gqTHiKv3"
+	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
 	if stripeKey == "" {
 		log.Fatal("STRIPE_SECRET_KEY no está configurada")
 	}

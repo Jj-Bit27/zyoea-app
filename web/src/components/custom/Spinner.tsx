@@ -1,6 +1,7 @@
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
+  message?: string
 }
 
 const sizeStyles = {
@@ -9,9 +10,9 @@ const sizeStyles = {
   lg: 'h-12 w-12',
 }
 
-export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
+export function Spinner({ size = 'md', className = '', message }: SpinnerProps) {
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
       <svg
         className={`animate-spin text-primary ${sizeStyles[size]}`}
         xmlns="http://www.w3.org/2000/svg"
@@ -32,14 +33,15 @@ export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
     </div>
   )
 }
 
-export function PageLoader() {
+export function PageLoader({ message }: { message?: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <Spinner size="lg" />
+      <Spinner size="lg" message={message} />
     </div>
   )
 }
