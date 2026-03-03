@@ -1,20 +1,16 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { IoReceipt, IoChevronForward, IoCash, IoCard, IoTime } from 'react-icons/io5'
 import { Card, CardContent } from '../custom/Card'
 import { Badge } from '../custom/Badge'
 import { Modal } from '../custom/Modal'
 import { EmptyState } from '../custom/EmptyState'
 import { useAuth } from '../../context/AuthContext'
-import { tickets } from '../../libs/mock-data'
-import type { Ticket } from '../../types'
 
 export default function TicketManager() {
   const { user } = useAuth()
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null)
 
-  const userTickets = useMemo(() => {
-    return tickets.filter((t) => t.userId === user?.id)
-  }, [user?.id])
+  const userTickets: any[] = []
 
   if (!user) {
     return (

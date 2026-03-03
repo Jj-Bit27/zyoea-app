@@ -19,7 +19,7 @@ const currentPath = Astro.url.pathname;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | Admin FoodApp</title>
     <script is:inline>
-      (function () {
+      function applyTheme() {
         try {
           const storedTheme = localStorage.getItem("theme");
           const systemTheme = window.matchMedia(
@@ -37,7 +37,11 @@ const currentPath = Astro.url.pathname;
         } catch (e) {
           console.error(e);
         }
-      })();
+      }
+
+      applyTheme();
+      document.addEventListener("astro:after-swap", applyTheme);
+      document.addEventListener("astro:page-load", applyTheme);
     </script>
   </head>
   <body

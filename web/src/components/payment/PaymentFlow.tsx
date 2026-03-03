@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { IoArrowBack, IoCash, IoCard, IoCheckmarkCircle } from 'react-icons/io5'
 import { Card, CardContent, CardHeader, CardTitle } from '../custom/Card'
 import { Button } from '../custom/Button'
 import { useOrder } from '../../context/OrderContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../custom/Toast'
-import { restaurants } from '../../libs/mock-data'
 
 type PaymentMethod = 'cash' | 'card' | null
 
@@ -17,10 +16,6 @@ export default function PaymentFlow() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
-
-  const restaurant = useMemo(() => {
-    return restaurants.find((r) => r.id === restaurantId)
-  }, [restaurantId])
 
   const subtotal = total
   const tax = Math.round(subtotal * 0.16)

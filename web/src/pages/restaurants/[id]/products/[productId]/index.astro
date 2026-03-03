@@ -1,96 +1,18 @@
 ---
 import Layout from "../../../../../layouts/Layout.astro";
-import { Navbar } from "../../../../../components/layout/Navbar";
-import { Footer } from "../../../../../components/layout/Footer";
-import ProductDetailManager from "../../../../../components/restaurant/ProductDetailManager";
-import { Card, CardContent } from "../../../../../components/custom/Card";
-import { restaurants, products } from "../../../../../libs/mock-data";
-import { IoArrowBack } from "react-icons/io5";
+import ProductDetailPage from "../../../../../components/restaurant/ProductDetailPage";
+
+export const prerender = false;
 
 const { id, productId } = Astro.params;
-
-const restaurant = restaurants.find((r) => r.id === id);
-const product = products.find(
-  (p) => p.id === productId && p.restaurantId === id,
-);
-
-if (!restaurant || !product) return Astro.redirect("/404");
-
-// Filtrado de productos relacionados (Lógica del servidor)
-const relatedProducts = products
-  .filter(
-    (p) =>
-      p.restaurantId === id &&
-      p.id !== productId &&
-      p.categoryId === product.categoryId,
-  )
-  .slice(0, 4);
 ---
 
-<Layout title={`${product.name} - ${restaurant.name}`}>
-  <div class="flex min-h-screen flex-col bg-background">
-    <Navbar client:load />
-
-    <main class="flex-1">
-      <div class="mx-auto max-w-7xl px-4 py-6">
-        <a
-          href={`/restaurantes/${id}/productos`}
-          class="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <IoArrowBack className="h-4 w-4" />
-          Volver al menú
-        </a>
-
-        {/* Isla Interactiva para el Detalle del Producto */}
-        <ProductDetailManager
-          product={product}
-          restaurantName={restaurant.name}
-          restaurantId={id!}
-          client:load
-        />
-
-        {/* Sección Estática de Relacionados (Server Rendered) */}
-        {
-          relatedProducts.length > 0 && (
-            <section class="mt-12">
-              <h2 class="text-xl font-bold text-foreground mb-4">
-                También te puede gustar
-              </h2>
-              <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {relatedProducts.map((relatedProduct) => (
-                  <a
-                    href={`/restaurantes/${id}/productos/${relatedProduct.id}`}
-                  >
-                    <Card
-                      padding="none"
-                      hoverable
-                      className="overflow-hidden h-full"
-                    >
-                      <div class="aspect-16/10 overflow-hidden">
-                        <img
-                          src={relatedProduct.image || "/placeholder.svg"}
-                          alt={relatedProduct.name}
-                          class="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                        />
-                      </div>
-                      <CardContent className="p-3">
-                        <h3 class="font-medium text-foreground line-clamp-1">
-                          {relatedProduct.name}
-                        </h3>
-                        <p class="mt-1 font-semibold text-primary">
-                          ${relatedProduct.price}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )
-        }
-      </div>
-    </main>
-
-    <Footer />
-  </div>
+<Layout title="Detalle del producto - FoodApp">
+  <main class="flex-1 bg-background">
+    <ProductDetailPage
+      restaurantId={id!}
+      productId={productId!}
+      client:only="react"
+    />
+  </main>
 </Layout>

@@ -24,7 +24,7 @@ const currentPath = Astro.url.pathname;
     <title>{title} | Staff FoodApp</title>
 
     <script is:inline>
-      (function () {
+      function applyTheme() {
         try {
           const storedTheme = localStorage.getItem("theme");
           const systemTheme = window.matchMedia(
@@ -42,7 +42,11 @@ const currentPath = Astro.url.pathname;
         } catch (e) {
           console.error(e);
         }
-      })();
+      }
+
+      applyTheme();
+      document.addEventListener("astro:after-swap", applyTheme);
+      document.addEventListener("astro:page-load", applyTheme);
     </script>
   </head>
   <body
