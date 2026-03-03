@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { IoArrowBack, IoCard, IoLockClosed, IoCheckmarkCircle } from 'react-icons/io5'
 import { Card, CardContent, CardHeader, CardTitle } from '../custom/Card'
 import { Button } from '../custom/Button'
@@ -6,7 +6,6 @@ import { Input } from '../custom/Input'
 import { useOrder } from '../../context/OrderContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../custom/Toast'
-import { restaurants } from '../../libs/mock-data'
 
 export default function CardPaymentForm() {
   const { items, restaurantId, total, clearOrder } = useOrder()

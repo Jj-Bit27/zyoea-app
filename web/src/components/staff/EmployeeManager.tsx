@@ -1,98 +1,70 @@
 import { useState } from "react";
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMail, FiPhone } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMail } from "react-icons/fi";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { Card, CardContent } from "../custom/Card";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../custom/Modal";
 import { Badge } from "../custom/Badge";
-import { Select } from "../custom/Select";
 import { Avatar } from "../custom/Avatar";
-import { addToast } from "../custom/Toast"; // Feedback global
+import { Spinner } from "../custom/Spinner";
+import { addToast } from "../custom/Toast";
+import { useEmployees } from "../../hooks/useEmployees";
+import { useAuth } from "../../context/AuthContext";
+import { ApolloWrapper } from "../ApolloWrapper";
 
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: "empleado" | "admin";
-  status: "activo" | "inactivo";
-  avatar?: string;
-}
+function EmployeesManagerContent() {
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId || "";
+  const { employees, loading, error, createEmployee, updateEmployee, removeEmployee } = useEmployees(restaurantId);
 
-const initialEmployees: Employee[] = [
-  { id: "1", name: "Carlos García", email: "carlos@foodapp.com", phone: "+52 555 123 4567", role: "admin", status: "activo" },
-  { id: "2", name: "María López", email: "maria@foodapp.com", phone: "+52 555 234 5678", role: "empleado", status: "activo" },
-  { id: "3", name: "Juan Pérez", email: "juan@foodapp.com", phone: "+52 555 345 6789", role: "empleado", status: "activo" },
-  { id: "4", name: "Ana Martínez", email: "ana@foodapp.com", phone: "+52 555 456 7890", role: "empleado", status: "inactivo" },
-];
-
-export function EmployeesManager() {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    role: "empleado" as "empleado" | "admin",
-    status: "activo" as "activo" | "inactivo",
+    name: "", email: "", password: "", position: "",
   });
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchTerm.toLowerCase())
+  if (!restaurantId) return (
+    <div className="p-6 bg-muted rounded-lg text-center">
+      <p className="text-muted-foreground">No hay restaurante asociado a tu cuenta.</p>
+    </div>
   );
 
-  const handleOpenModal = (employee?: Employee) => {
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
+
+  const filteredEmployees = employees.filter((emp: any) => {
+    const name = emp.user?.name || "";
+    const email = emp.user?.email || "";
+    return (
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
+
+  const handleOpenModal = (employee?: any) => {
     if (employee) {
       setEditingEmployee(employee);
-      setFormData({
-        name: employee.name,
-        email: employee.email,
-        phone: employee.phone,
-        role: employee.role,
-        status: employee.status,
-      });
+      setFormData({ name: employee.user?.name || "", email: employee.user?.email || "", password: "", position: employee.position || "" });
     } else {
       setEditingEmployee(null);
-      setFormData({ name: "", email: "", phone: "", role: "empleado", status: "activo" });
+      setFormData({ name: "", email: "", password: "", position: "" });
     }
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
-    // Validación básica
     if (!formData.name || !formData.email) {
       addToast("Nombre y email son requeridos", "error");
       return;
     }
-
     if (editingEmployee) {
-      setEmployees(
-        employees.map((emp) =>
-          emp.id === editingEmployee.id ? { ...emp, ...formData } : emp
-        )
-      );
-      addToast("Empleado actualizado correctamente", "success");
+      updateEmployee({ id: editingEmployee.id, name: formData.name, email: formData.email, position: formData.position, restaurantId: parseInt(restaurantId) });
     } else {
-      const newEmployee: Employee = {
-        id: Date.now().toString(),
-        ...formData,
-      };
-      setEmployees([...employees, newEmployee]);
-      addToast("Empleado registrado correctamente", "success");
+      if (!formData.password) { addToast("La contraseña es requerida", "error"); return; }
+      createEmployee({ name: formData.name, email: formData.email, password: formData.password, position: formData.position, restaurantId: parseInt(restaurantId) });
     }
     setIsModalOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este empleado?")) {
-      setEmployees(employees.filter((emp) => emp.id !== id));
-      addToast("Empleado eliminado", "info");
-    }
   };
 
   return (
@@ -121,37 +93,31 @@ export function EmployeesManager() {
 
       {/* Employees Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredEmployees.map((employee) => (
+        {filteredEmployees.map((employee: any) => (
           <Card key={employee.id}>
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
-                <Avatar name={employee.name} size="lg" />
+                <Avatar name={employee.user?.name || "?"} size="lg" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground truncate">{employee.name}</h3>
-                    <Badge variant={employee.role === "admin" ? "default" : "secondary"}>
-                      {employee.role}
-                    </Badge>
+                    <h3 className="font-semibold text-foreground truncate">{employee.user?.name}</h3>
+                    <Badge variant="secondary">{employee.position}</Badge>
                   </div>
                   <div className="mt-2 space-y-1">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <FiMail size={14} />
-                      <span className="truncate">{employee.email}</span>
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <FiPhone size={14} />
-                      {employee.phone}
+                      <span className="truncate">{employee.user?.email}</span>
                     </p>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
-                    <Badge variant={employee.status === "activo" ? "success" : "destructive"}>
-                      {employee.status}
+                    <Badge variant={employee.user?.role ? "default" : "secondary"}>
+                      {employee.user?.role || "empleado"}
                     </Badge>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleOpenModal(employee)}>
                         <FiEdit2 size={16} />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(employee.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => removeEmployee(employee.id)}>
                         <FiTrash2 size={16} />
                       </Button>
                     </div>
@@ -163,6 +129,10 @@ export function EmployeesManager() {
         ))}
       </div>
 
+      {filteredEmployees.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">No se encontraron empleados.</div>
+      )}
+
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <ModalHeader onClose={() => setIsModalOpen(false)}>
@@ -170,55 +140,28 @@ export function EmployeesManager() {
         </ModalHeader>
         <ModalBody>
           <div className="space-y-4">
-            <Input
-              label="Nombre completo"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ingresa el nombre"
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="correo@ejemplo.com"
-            />
-            <Input
-              label="Teléfono"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+52 555 000 0000"
-            />
-            <Select
-              label="Rol"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as "empleado" | "admin" })}
-              options={[
-                { value: "empleado", label: "Empleado" },
-                { value: "admin", label: "Administrador" },
-              ]}
-            />
-            <Select
-              label="Estado"
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as "activo" | "inactivo" })}
-              options={[
-                { value: "activo", label: "Activo" },
-                { value: "inactivo", label: "Inactivo" },
-              ]}
-            />
+            <Input label="Nombre completo" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nombre" />
+            <Input label="Email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="correo@ejemplo.com" />
+            {!editingEmployee && (
+              <Input label="Contraseña" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Contraseña" />
+            )}
+            <Input label="Cargo / Posición" value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} placeholder="Ej. Mesero, Cocinero..." />
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave}>
-            {editingEmployee ? "Guardar cambios" : "Crear empleado"}
-          </Button>
+          <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSave}>{editingEmployee ? "Guardar cambios" : "Crear empleado"}</Button>
         </ModalFooter>
       </Modal>
     </div>
   );
 }
+
+export function EmployeesManager() {
+  return (
+    <ApolloWrapper>
+      <EmployeesManagerContent />
+    </ApolloWrapper>
+  );
+}
+

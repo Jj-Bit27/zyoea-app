@@ -7,65 +7,65 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from "../custom/Modal";
 import { Textarea } from "../custom/Textarea";
 import { Select } from "../custom/Select";
 import { Badge } from "../custom/Badge";
-import { addToast } from "../custom/Toast"; // Feedback global
+import { Spinner } from "../custom/Spinner";
+import { addToast } from "../custom/Toast";
+import { useProducts } from "../../hooks/useProducts";
+import { useCategories } from "../../hooks/useCategories";
+import { useAuth } from "../../context/AuthContext";
+import { ApolloWrapper } from "../ApolloWrapper";
 
-interface Product {
-  id: string;
+interface FormData {
   name: string;
   description: string;
-  price: number;
+  price: string;
   category: string;
   image: string;
-  available: boolean;
+  status: boolean;
 }
 
-const categories = ["Entradas", "Platos fuertes", "Postres", "Bebidas", "Ensaladas"];
+function ProductsManagerContent() {
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId || "";
+  const { products, loading, error, createProduct, updateProduct, deleteProduct } = useProducts(restaurantId);
+  const { categories } = useCategories(restaurantId);
 
-const initialProducts: Product[] = [
-  { id: "1", name: "Bruschetta", description: "Pan tostado con tomate y albahaca", price: 85, category: "Entradas", image: "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=300", available: true },
-  { id: "2", name: "Filete Mignon", description: "Corte premium con guarnición", price: 380, category: "Platos fuertes", image: "https://images.unsplash.com/photo-1558030006-450675393462?w=300", available: true },
-  { id: "3", name: "Tiramisú", description: "Postre italiano tradicional", price: 95, category: "Postres", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=300", available: true },
-  { id: "4", name: "Limonada", description: "Limonada natural fresca", price: 45, category: "Bebidas", image: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=300", available: false },
-  { id: "5", name: "Ensalada César", description: "Lechuga, crutones y aderezo césar", price: 120, category: "Ensaladas", image: "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=300", available: true },
-  { id: "6", name: "Pasta Alfredo", description: "Pasta con salsa cremosa", price: 165, category: "Platos fuertes", image: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=300", available: true },
-];
-
-export function ProductsManager() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category: "",
-    image: "",
-    available: true,
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [formData, setFormData] = useState<FormData>({
+    name: "", description: "", price: "", category: "", image: "", status: true,
   });
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || product.category === filterCategory;
+  if (!restaurantId) return (
+    <div className="p-6 bg-muted rounded-lg text-center">
+      <p className="text-muted-foreground">No hay restaurante asociado a tu cuenta.</p>
+    </div>
+  );
+
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
+
+  const filteredProducts = products.filter((product: any) => {
+    const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !filterCategory || product.category?.id === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const handleOpenModal = (product?: Product) => {
+  const handleOpenModal = (product?: any) => {
     if (product) {
       setEditingProduct(product);
       setFormData({
         name: product.name,
-        description: product.description,
-        price: product.price.toString(),
-        category: product.category,
-        image: product.image,
-        available: product.available,
+        description: product.description || "",
+        price: String(product.price),
+        category: product.category?.id || "",
+        image: product.image || "",
+        status: product.status ?? true,
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", description: "", price: "", category: "", image: "", available: true });
+      setFormData({ name: "", description: "", price: "", category: "", image: "", status: true });
     }
     setIsModalOpen(true);
   };
@@ -75,54 +75,27 @@ export function ProductsManager() {
       addToast("Completa los campos obligatorios", "error");
       return;
     }
-
-    const productData = {
+    const input = {
+      restaurant: parseInt(restaurantId),
+      category: parseInt(formData.category),
       name: formData.name,
       description: formData.description,
       price: parseFloat(formData.price) || 0,
-      category: formData.category,
-      image: formData.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
-      available: formData.available,
+      image: formData.image || null,
+      status: formData.status,
     };
-
     if (editingProduct) {
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...p, ...productData } : p
-        )
-      );
-      addToast("Producto actualizado", "success");
+      updateProduct(editingProduct.id, input);
     } else {
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        ...productData,
-      };
-      setProducts([...products, newProduct]);
-      addToast("Producto creado", "success");
+      createProduct(input);
     }
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este producto?")) {
-      setProducts(products.filter((p) => p.id !== id));
-      addToast("Producto eliminado", "info");
-    }
-  };
-
-  const toggleAvailability = (id: string) => {
-    setProducts(
-      products.map((p) => {
-        if (p.id === id) {
-          const newStatus = !p.available;
-          // Feedback sutil
-          addToast(`${p.name} ahora está ${newStatus ? 'disponible' : 'agotado'}`, "info");
-          return { ...p, available: newStatus };
-        }
-        return p;
-      })
-    );
-  };
+  const categoryOptions = [
+    { value: "", label: "Todas las categorías" },
+    ...categories.map((c: any) => ({ value: c.id, label: c.name })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -151,26 +124,22 @@ export function ProductsManager() {
         <Select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          options={[
-            { value: "", label: "Todas las categorías" },
-            ...categories.map((c) => ({ value: c, label: c })),
-          ]}
+          options={categoryOptions}
         />
       </div>
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredProducts.map((product) => (
-          <Card key={product.id} className={`overflow-hidden transition-opacity ${!product.available ? "opacity-75" : ""}`}>
+        {filteredProducts.map((product: any) => (
+          <Card key={product.id} className={`overflow-hidden transition-opacity ${!product.status ? "opacity-75" : ""}`}>
             <div className="relative aspect-video bg-muted">
-              {/* Reemplazo de next/image por img estándar con clases de Tailwind */}
               <img
                 src={product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300"}
                 alt={product.name}
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
               />
-              {!product.available && (
+              {!product.status && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-[1px]">
                   <Badge variant="destructive" className="text-sm px-3 py-1">No disponible</Badge>
                 </div>
@@ -179,8 +148,8 @@ export function ProductsManager() {
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-foreground line-clamp-1" title={product.name}>{product.name}</h3>
-                  <p className="text-sm text-muted-foreground">{product.category}</p>
+                  <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
+                  <p className="text-sm text-muted-foreground">{product.category?.name}</p>
                 </div>
                 <p className="font-bold text-primary">${product.price}</p>
               </div>
@@ -188,22 +157,16 @@ export function ProductsManager() {
                 {product.description}
               </p>
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => toggleAvailability(product.id)}
-                  className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
-                    product.available
-                      ? "bg-success/20 text-success hover:bg-success/30"
-                      : "bg-destructive/20 text-destructive hover:bg-destructive/30"
-                  }`}
-                >
-                  {product.available ? "Disponible" : "Agotado"}
-                </button>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  product.status ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+                }`}>
+                  {product.status ? "Disponible" : "Agotado"}
+                </span>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={() => handleOpenModal(product)}>
                     <FiEdit2 size={16} />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)}>
+                  <Button variant="ghost" size="sm" onClick={() => deleteProduct(product.id)}>
                     <FiTrash2 size={16} />
                   </Button>
                 </div>
@@ -212,6 +175,12 @@ export function ProductsManager() {
           </Card>
         ))}
       </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          No se encontraron productos con los filtros seleccionados.
+        </div>
+      )}
 
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="lg">
@@ -239,7 +208,7 @@ export function ProductsManager() {
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               options={[
                 { value: "", label: "Selecciona una categoría" },
-                ...categories.map((c) => ({ value: c, label: c })),
+                ...categories.map((c: any) => ({ value: c.id, label: c.name })),
               ]}
             />
             <Input
@@ -261,8 +230,8 @@ export function ProductsManager() {
               <label className="flex items-center gap-2 cursor-pointer w-fit">
                 <input
                   type="checkbox"
-                  checked={formData.available}
-                  onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
+                  checked={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
                   className="w-4 h-4 rounded border-border"
                 />
                 <span className="text-sm text-foreground">Producto disponible</span>
@@ -271,14 +240,20 @@ export function ProductsManager() {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-            Cancelar
-          </Button>
+          <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
           <Button onClick={handleSave}>
             {editingProduct ? "Guardar cambios" : "Crear producto"}
           </Button>
         </ModalFooter>
       </Modal>
     </div>
+  );
+}
+
+export function ProductsManager() {
+  return (
+    <ApolloWrapper>
+      <ProductsManagerContent />
+    </ApolloWrapper>
   );
 }

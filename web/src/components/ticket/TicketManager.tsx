@@ -1,20 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { IoReceipt, IoChevronForward, IoCash, IoCard, IoTime } from 'react-icons/io5'
 import { Card, CardContent } from '../custom/Card'
 import { Badge } from '../custom/Badge'
 import { Modal } from '../custom/Modal'
 import { EmptyState } from '../custom/EmptyState'
+import { Spinner } from '../custom/Spinner'
 import { useAuth } from '../../context/AuthContext'
-import { tickets } from '../../libs/mock-data'
-import type { Ticket } from '../../types'
+import { useUserPayments } from '../../hooks/usePayments'
+import { ApolloWrapper } from '../ApolloWrapper'
 
-export default function TicketManager() {
+function TicketManagerContent() {
   const { user } = useAuth()
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-
-  const userTickets = useMemo(() => {
-    return tickets.filter((t) => t.userId === user?.id)
-  }, [user?.id])
+  const { payments, loading } = useUserPayments(user?.id || '')
+  const [selectedPayment, setSelectedPayment] = useState<any>(null)
 
   if (!user) {
     return (
@@ -27,78 +25,81 @@ export default function TicketManager() {
     )
   }
 
+  if (loading) {
+    return <div className="flex justify-center py-10"><Spinner size="lg" /></div>
+  }
+
+  if (payments.length === 0) {
+    return (
+      <EmptyState
+        icon={IoReceipt}
+        title="Sin tickets"
+        description="Aquí aparecerán tus pagos y recibos"
+      />
+    )
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-2xl font-bold text-foreground">Mis Tickets</h1>
-      <p className="mt-1 text-muted-foreground">Historial de tus órdenes anteriores</p>
+      <p className="mt-1 text-muted-foreground">Historial de tus pagos</p>
 
-      {userTickets.length === 0 ? (
-        <div className="mt-8">
-          <EmptyState
-            icon={IoReceipt}
-            title="No tienes tickets"
-            description="Cuando realices una orden, tu ticket aparecerá aquí"
-            action={{ label: 'Ver Restaurantes', onClick: () => window.location.href = '/restaurantes' }}
-          />
-        </div>
-      ) : (
         <div className="mt-6 space-y-4">
-          {userTickets.map((ticket) => (
+          {payments.map((payment: any) => (
             <Card
-              key={ticket.id}
+              key={payment.id}
               hoverable
               className="cursor-pointer transition-colors"
-              onClick={() => setSelectedTicket(ticket)}
+              onClick={() => setSelectedPayment(payment)}
             >
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 shrink-0">
                   <IoReceipt className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{ticket.restaurantName}</h3>
+                  <h3 className="font-semibold text-foreground truncate">{payment.description || `Pago #${payment.id}`}</h3>
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <IoTime className="h-4 w-4" />
-                      {new Date(ticket.createdAt).toLocaleDateString('es-MX', {
+                      {new Date(payment.createdAt).toLocaleDateString('es-MX', {
                         day: 'numeric', month: 'short', year: 'numeric'
                       })}
                     </span>
                     <span className="flex items-center gap-1">
-                      {ticket.paymentMethod === 'cash' ? <IoCash className="h-4 w-4" /> : <IoCard className="h-4 w-4" />}
-                      {ticket.paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                      <IoCard className="h-4 w-4" />
+                      {payment.currency?.toUpperCase()}
                     </span>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-lg font-bold text-foreground">${ticket.total}</p>
-                  <p className="text-sm text-muted-foreground hidden sm:block">
-                    {ticket.items.length} producto{ticket.items.length > 1 ? 's' : ''}
-                  </p>
+                  <p className="text-lg font-bold text-foreground">${payment.amount}</p>
+                  <Badge variant={payment.status === 'succeeded' ? 'success' : 'secondary'}>
+                    {payment.status}
+                  </Badge>
                 </div>
                 <IoChevronForward className="h-5 w-5 text-muted-foreground" />
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
 
-      {/* Ticket Detail Modal */}
+      {/* Payment Detail Modal */}
       <Modal
-        isOpen={!!selectedTicket}
-        onClose={() => setSelectedTicket(null)}
+        isOpen={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
         title="Detalle del Ticket"
         size="md"
       >
         {selectedTicket && (
           <div className="overflow-hidden rounded-lg shadow-sm">
-            {/* Ticket Header */}
+                        {/* Payment Header */}
             <div className="bg-primary px-4 py-6 text-center text-primary-foreground">
-              <h2 className="text-xl font-bold">{selectedTicket.restaurantName}</h2>
+              <h2 className="text-xl font-bold">{selectedPayment?.description || `Pago #${selectedPayment?.id}`}</h2>
               <p className="mt-1 text-sm opacity-80">
-                {new Date(selectedTicket.createdAt).toLocaleDateString('es-MX', {
+                {selectedPayment ? new Date(selectedPayment.createdAt).toLocaleDateString('es-MX', {
                   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                   hour: '2-digit', minute: '2-digit'
-                })}
+                }) : ''}
               </p>
             </div>
 
@@ -111,61 +112,27 @@ export default function TicketManager() {
               </div>
             </div>
 
-            {/* Ticket Body */}
+            {/* Payment Body */}
             <div className="bg-card px-6 py-4">
-              <div className="border-b border-dashed border-border pb-4">
-                <p className="text-xs font-semibold text-muted-foreground mb-3">PRODUCTOS</p>
-                {selectedTicket.items.map((item) => (
-                  <div key={item.id} className="flex justify-between py-1 text-sm">
-                    <span className="text-foreground">
-                      {item.quantity}x {item.product.name}
-                    </span>
-                    <span className="text-foreground font-medium">${item.price * item.quantity}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-b border-dashed border-border py-4 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">${selectedTicket.subtotal}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">IVA</span>
-                  <span className="text-foreground">${selectedTicket.tax}</span>
-                </div>
-              </div>
-
               <div className="py-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-foreground">TOTAL</span>
-                  <span className="text-xl font-bold text-primary">${selectedTicket.total}</span>
+                  <span className="text-xl font-bold text-primary">${selectedPayment?.amount}</span>
                 </div>
-              </div>
-
-              <div className="border-t border-dashed border-border pt-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Método de pago</span>
-                  <Badge variant="secondary">
-                    {selectedTicket.paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-muted-foreground">Estado</span>
+                  <Badge variant={selectedPayment?.status === 'succeeded' ? 'success' : 'secondary'}>
+                    {selectedPayment?.status}
                   </Badge>
                 </div>
-                {selectedTicket.paymentMethod === 'cash' && selectedTicket.cashReceived && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Efectivo recibido</span>
-                      <span className="text-foreground">${selectedTicket.cashReceived}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Cambio</span>
-                      <span className="text-foreground">${selectedTicket.change}</span>
-                    </div>
-                  </>
-                )}
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-muted-foreground">Moneda</span>
+                  <span className="text-foreground">{selectedPayment?.currency?.toUpperCase()}</span>
+                </div>
               </div>
 
               <div className="mt-8 text-center pb-4">
-                <p className="text-xs font-mono text-muted-foreground">Ticket #{selectedTicket.id}</p>
+                <p className="text-xs font-mono text-muted-foreground">Pago #{selectedPayment?.id}</p>
                 <p className="mt-2 text-sm text-muted-foreground">¡Gracias por tu preferencia!</p>
               </div>
             </div>
@@ -182,5 +149,13 @@ export default function TicketManager() {
         )}
       </Modal>
     </div>
+  )
+}
+
+export default function TicketManager() {
+  return (
+    <ApolloWrapper>
+      <TicketManagerContent />
+    </ApolloWrapper>
   )
 }

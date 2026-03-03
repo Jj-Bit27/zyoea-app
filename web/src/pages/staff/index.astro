@@ -1,11 +1,8 @@
 ---
 import StaffLayout from "../../layouts/StaffLayout.astro";
 import Dashboard from "../../components/staff/Dashboard";
-
-// Si necesitas proteger esta ruta en el servidor (opcional pero recomendado en Astro)
-// puedes verificar cookies aquí, aunque la Sidebar y el AuthContext ya manejan la UI.
 ---
 
 <StaffLayout title="Dashboard">
-  <Dashboard />
+  <Dashboard client:load />
 </StaffLayout>

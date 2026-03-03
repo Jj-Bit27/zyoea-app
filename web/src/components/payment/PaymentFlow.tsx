@@ -5,7 +5,7 @@ import { Button } from '../custom/Button'
 import { useOrder } from '../../context/OrderContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../custom/Toast'
-import { restaurants } from '../../libs/mock-data'
+import { useRestaurantById } from '../../hooks/useRestaurants'
 
 type PaymentMethod = 'cash' | 'card' | null
 
@@ -13,14 +13,9 @@ export default function PaymentFlow() {
   const { items, restaurantId, total, clearOrder } = useOrder()
   const { user } = useAuth()
   const { showToast } = useToast()
+  const { restaurant } = useRestaurantById(restaurantId || '')
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isComplete, setIsComplete] = useState(false)
-
-  const restaurant = useMemo(() => {
-    return restaurants.find((r) => r.id === restaurantId)
-  }, [restaurantId])
 
   const subtotal = total
   const tax = Math.round(subtotal * 0.16)
