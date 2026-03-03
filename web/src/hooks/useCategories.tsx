@@ -45,40 +45,20 @@ const GET_CATEGORY = gql`
 `;
 
 const CREATE_CATEGORY = gql`
-  mutation CreateCategory($input: CategoryInput!) {
+  mutation CreateCategory($input: CreateCategoryInput!) {
     createCategory(input: $input) {
       id
       restaurantId
-      restaurant {
-        id
-        name
-        address
-        email
-        description
-        image
-        phone
-        hours
-      }
       name
     }
   }
 `;
 
 const UPDATE_CATEGORY = gql`
-  mutation UpdateCategory($id: ID!, $input: CategoryInput!) {
+  mutation UpdateCategory($id: ID!, $input: UpdateCategoryInput!) {
     updateCategory(id: $id, input: $input) {
       id
       restaurantId
-      restaurant {
-        id
-        name
-        address
-        email
-        description
-        image
-        phone
-        hours
-      }
       name
     }
   }
@@ -94,24 +74,36 @@ export function useCategories(restaurantId: string) {
   // --- LEER (Get All) ---
   const { data, loading, error } = useQuery<CategoryData>(GET_CATEGORIES, {
     variables: { restaurantId },
+    skip: !restaurantId,
   });
 
   // --- CREAR ---
   const [createMutation] = useMutation(CREATE_CATEGORY, {
-    refetchQueries: [{ query: GET_CATEGORIES }], // Actualiza la lista automáticamente
+    refetchQueries: [{ query: GET_CATEGORIES, variables: { restaurantId } }],
     onCompleted: () => addToast("Categoría creada exitosamente", "success"),
+    onError: (err) => addToast(err.message, "error"),
+  });
+
+  // --- ACTUALIZAR ---
+  const [updateMutation] = useMutation(UPDATE_CATEGORY, {
+    refetchQueries: [{ query: GET_CATEGORIES, variables: { restaurantId } }],
+    onCompleted: () => addToast("Categoría actualizada", "success"),
     onError: (err) => addToast(err.message, "error"),
   });
 
   // --- ELIMINAR ---
   const [deleteMutation] = useMutation(DELETE_CATEGORY, {
-    refetchQueries: [{ query: GET_CATEGORIES }], // O usa update() de caché para ser más pro
+    refetchQueries: [{ query: GET_CATEGORIES, variables: { restaurantId } }],
     onCompleted: () => addToast("Categoría eliminada", "info"),
     onError: (err) => addToast(err.message, "error"),
   });
 
   const createCategory = (categoryData: any) => {
     createMutation({ variables: { input: categoryData } });
+  };
+
+  const updateCategory = (id: string, categoryData: any) => {
+    updateMutation({ variables: { id, input: categoryData } });
   };
 
   const deleteCategory = (id: string) => {
@@ -126,32 +118,7 @@ export function useCategories(restaurantId: string) {
     loading,
     error,
     createCategory,
-    deleteCategory,
-  };
-}
-
-export function useCategoryById(id: string) {
-  // --- LEER (Get One) ---
-  const { data, loading, error } = useQuery<CategoryData>(GET_CATEGORY, {
-    variables: { id },
-  });
-
-  // --- ACTUALIZAR ---
-  const [updateMutation] = useMutation(UPDATE_CATEGORY, {
-    refetchQueries: [{ query: GET_CATEGORIES }],
-    onCompleted: () => addToast("Categoría actualizada", "success"),
-    onError: (err) => addToast(err.message, "error"),
-  });
-
-  const updateCategory = (id: string, categoryData: any) => {
-    updateMutation({ variables: { id, input: categoryData } });
-  };
-
-  // Retornamos solo lo que la UI necesita
-  return {
-    categories: data?.categories || [],
-    loading,
-    error,
     updateCategory,
+    deleteCategory,
   };
 }

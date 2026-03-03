@@ -34,7 +34,7 @@ func (s *Service) Create(ctx context.Context, input model.CreateProductInput) (*
 	var id int
 	sql := `
 		INSERT INTO products (restaurant, category, "name", "description", price, ingredients, allergens, "status", image)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)1
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 	`
 

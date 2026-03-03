@@ -4,23 +4,33 @@ import { Card, CardContent } from '../custom/Card'
 import { Button } from '../custom/Button'
 import { Badge } from '../custom/Badge'
 import { Textarea } from '../custom/Textarea'
+import { Spinner } from '../custom/Spinner'
 import { useOrder } from '../../context/OrderContext'
 import { useToast } from '../custom/Toast'
 import { useAuth } from '../../context/AuthContext'
+import { useProductById } from '../../hooks/useProducts'
+import { ApolloWrapper } from '../ApolloWrapper'
 
 interface Props {
-  product: any; // Idealmente usar tu tipo Product
-  restaurantName: string;
+  productId: string;
   restaurantId: string;
 }
 
-export default function ProductDetailManager({ product, restaurantName, restaurantId }: Props) {
+function ProductDetailContent({ productId, restaurantId }: Props) {
   const { addItem, restaurantId: currentRestaurantId } = useOrder()
   const { showToast } = useToast()
   const { user } = useAuth()
+  const { product, loading, error } = useProductById(productId)
 
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
+
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+  if (error || !product) return (
+    <div className="p-6 bg-destructive/10 text-destructive rounded-lg text-center">
+      {error ? error.message : 'Producto no encontrado'}
+    </div>
+  )
 
   const canAddProduct = !currentRestaurantId || currentRestaurantId === restaurantId
   const totalPrice = product.price * quantity
@@ -37,9 +47,8 @@ export default function ProductDetailManager({ product, restaurantName, restaura
       return
     }
 
-    // Añadimos el producto N veces según la cantidad
     for (let i = 0; i < quantity; i++) {
-      const result = addItem({ ...product, notes }) // Pasamos las notas si tu contexto lo soporta
+      const result = addItem({ ...product, notes })
       if (!result.success) {
         showToast(result.message || 'Error al agregar', 'error')
         return
@@ -47,8 +56,7 @@ export default function ProductDetailManager({ product, restaurantName, restaura
     }
 
     showToast(`${quantity}x ${product.name} agregado a tu orden`, 'success')
-    // Redirección nativa
-    window.location.href = `/restaurantes/${restaurantId}/productos`
+    window.location.href = `/restaurants/${restaurantId}/products`
   }
 
   return (
@@ -67,25 +75,19 @@ export default function ProductDetailManager({ product, restaurantName, restaura
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-            <p className="mt-1 text-muted-foreground">{restaurantName}</p>
+            <p className="mt-1 text-muted-foreground">{product.restaurant?.name}</p>
           </div>
-          <Badge variant={product.isAvailable ? 'success' : 'destructive'} className="shrink-0">
-            {product.isAvailable ? 'Disponible' : 'Agotado'}
+          <Badge variant={product.status ? 'success' : 'destructive'} className="shrink-0">
+            {product.status ? 'Disponible' : 'Agotado'}
           </Badge>
         </div>
 
         <p className="mt-4 text-lg text-muted-foreground">{product.description}</p>
 
-        {product.ingredients && product.ingredients.length > 0 && (
+        {product.ingredients && (
           <div className="mt-6">
             <h3 className="font-semibold text-foreground">Ingredientes</h3>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {product.ingredients.map((ingredient: string) => (
-                <Badge key={ingredient} variant="secondary">
-                  {ingredient}
-                </Badge>
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{product.ingredients}</p>
           </div>
         )}
 
@@ -94,7 +96,7 @@ export default function ProductDetailManager({ product, restaurantName, restaura
         </div>
 
         {/* Interactive Form */}
-        {product.isAvailable && (
+        {product.status && (
           <Card className="mt-6">
             <CardContent className="space-y-4 pt-6">
               {/* Quantity Selector */}
@@ -141,7 +143,7 @@ export default function ProductDetailManager({ product, restaurantName, restaura
                 ) : (
                   <div className="text-right">
                     <p className="text-xs text-destructive mb-1">Orden de otro restaurante activa</p>
-                    <a href="/orden">
+                    <a href="/order">
                       <Button variant="outline" size="sm" className="bg-transparent text-destructive border-destructive hover:bg-destructive/10">
                         Ver mi orden
                       </Button>
@@ -154,5 +156,13 @@ export default function ProductDetailManager({ product, restaurantName, restaura
         )}
       </div>
     </div>
+  )
+}
+
+export default function ProductDetailManager({ productId, restaurantId }: Props) {
+  return (
+    <ApolloWrapper>
+      <ProductDetailContent productId={productId} restaurantId={restaurantId} />
+    </ApolloWrapper>
   )
 }
