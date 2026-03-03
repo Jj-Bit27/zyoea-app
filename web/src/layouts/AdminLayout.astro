@@ -38,6 +38,26 @@ const currentPath = Astro.url.pathname;
           console.error(e);
         }
       })();
+
+      document.addEventListener("astro:after-swap", () => {
+        try {
+          const storedTheme = localStorage.getItem("theme");
+          const systemTheme = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          if (
+            storedTheme === "dark" ||
+            (!storedTheme && systemTheme) ||
+            (storedTheme === "system" && systemTheme)
+          ) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      });
     </script>
   </head>
   <body

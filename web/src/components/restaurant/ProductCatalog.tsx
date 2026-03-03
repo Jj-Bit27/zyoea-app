@@ -63,7 +63,7 @@ export function ProductCatalogContent({
       <section className="border-b border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-6">
           <a
-            href={`/restaurantes/${restaurantId}`}
+            href={`/restaurants/${restaurantId}`}
             className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <IoArrowBack /> Volver a {restaurant?.name || "Restaurante"}
@@ -139,7 +139,7 @@ export function ProductCatalogContent({
                   className="overflow-hidden h-full"
                 >
                   <a
-                    href={`/restaurantes/${restaurantId}/productos/${product.id}`}
+                   href={`/restaurants/${restaurantId}/products/${product.id}`}
                   >
                     <div className="aspect-16/10 overflow-hidden">
                       <img

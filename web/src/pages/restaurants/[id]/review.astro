@@ -1,44 +1,28 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import { Navbar } from "../../../components/layout/Navbar";
-import { Footer } from "../../../components/layout/Footer";
 import ReviewManager from "../../../components/restaurant/ReviewManager";
-import { restaurants } from "../../../libs/mock-data";
 import { IoArrowBack } from "react-icons/io5";
 
-const { id } = Astro.params;
-const restaurant = restaurants.find((r) => r.id === id);
+export const prerender = false;
 
-if (!restaurant) return Astro.redirect("/404");
+const { id } = Astro.params;
 ---
 
-<Layout title={`Reseñas de ${restaurant.name} - FoodApp`}>
-  <div class="flex min-h-screen flex-col bg-background">
-    <Navbar client:load />
+<Layout title="Reseñas del Restaurante">
+  <section class="border-b border-border bg-card">
+    <div class="mx-auto max-w-7xl px-4 py-6">
+      <a
+        href={`/restaurants/${id}`}
+        class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <IoArrowBack /> Volver al restaurante
+      </a>
+    </div>
+  </section>
 
-    <main class="flex-1">
-      <section class="border-b border-border bg-card">
-        <div class="mx-auto max-w-7xl px-4 py-6">
-          <a
-            href={`/restaurantes/${id}`}
-            class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <IoArrowBack /> Volver a {restaurant.name}
-          </a>
-        </div>
-      </section>
-
-      <section class="py-8">
-        <div class="mx-auto max-w-3xl px-4">
-          <ReviewManager
-            restaurantId={id!}
-            restaurantName={restaurant.name}
-            client:load
-          />
-        </div>
-      </section>
-    </main>
-
-    <Footer />
-  </div>
+  <section class="py-8">
+    <div class="mx-auto max-w-3xl px-4">
+      <ReviewManager restaurantId={String(id)} client:load />
+    </div>
+  </section>
 </Layout>

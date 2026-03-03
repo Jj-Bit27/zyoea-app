@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext'
 import { reviews as initialReviews } from '../../libs/mock-data'
 import type { Review } from '../../types'
 
-export default function ReviewManager({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
+export default function ReviewManager({ restaurantId, restaurantName = '' }: { restaurantId: string, restaurantName?: string }) {
   const { user } = useAuth()
   const { showToast } = useToast()
 
