@@ -67,6 +67,10 @@ export interface ProductData {
   products: Product[];
 }
 
+export interface ProductByIdData {
+  product: Product;
+}
+
 // ==================== ORDENES ====================
 export interface OrderItem {
   id: string;

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { ProductData } from "../types";
+import type { ProductData, ProductByIdData } from "../types";
 
 // 1. Definimos todas las consultas aquí (centralizado)
 const GET_PRODUCTS = gql`
@@ -153,8 +153,9 @@ export function useProducts(restaurantId: string) {
 
 export function useProductById(id: string) {
   // --- LEER (Get One) ---
-  const { data, loading, error } = useQuery<ProductData>(GET_PRODUCT, {
+  const { data, loading, error } = useQuery<ProductByIdData>(GET_PRODUCT, {
     variables: { id },
+    skip: !id,
   });
 
   // --- ACTUALIZAR ---
@@ -169,7 +170,7 @@ export function useProductById(id: string) {
   };
 
   return {
-    products: data?.products || [], // Devolvemos el array directo
+    product: data?.product || null,
     loading,
     error,
     updateProduct,

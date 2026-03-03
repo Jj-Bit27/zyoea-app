@@ -51,7 +51,7 @@ export default function PaymentFlow() {
       <div className="text-center py-20">
         <h1 className="text-2xl font-bold">No hay orden activa</h1>
         <p className="mt-2 text-muted-foreground">Agrega productos a tu orden primero</p>
-        <a href="/restaurantes" className="inline-block mt-4">
+        <a href="/restaurants" className="inline-block mt-4">
           <Button>Ver Restaurantes</Button>
         </a>
       </div>

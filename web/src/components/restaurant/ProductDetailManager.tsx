@@ -48,7 +48,7 @@ export default function ProductDetailManager({ product, restaurantName, restaura
 
     showToast(`${quantity}x ${product.name} agregado a tu orden`, 'success')
     // Redirección nativa
-    window.location.href = `/restaurantes/${restaurantId}/productos`
+    window.location.href = `/restaurants/${restaurantId}/products`
   }
 
   return (

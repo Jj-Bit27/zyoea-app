@@ -66,7 +66,7 @@ export default function CardPaymentForm() {
     return (
       <div className="text-center py-20">
         <h1 className="text-2xl font-bold">No hay orden activa</h1>
-        <a href="/restaurantes" className="inline-block mt-4"><Button>Ver Restaurantes</Button></a>
+        <a href="/restaurants" className="inline-block mt-4"><Button>Ver Restaurantes</Button></a>
       </div>
     )
   }

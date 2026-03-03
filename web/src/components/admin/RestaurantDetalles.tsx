@@ -94,7 +94,7 @@ export default function RestauranteDetalle({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <a href="/admin/restaurantes">
+        <a href="/admin/restaurants">
           <Button variant="ghost" size="sm">
             <FiArrowLeft size={18} />
             Volver
