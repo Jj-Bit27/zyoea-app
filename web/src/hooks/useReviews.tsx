@@ -88,7 +88,7 @@ export function useReviews(restaurantId: string) {
   };
 
   const updateReview = (id: string, input: { rating?: number; comment?: string }) => {
-    updateMutation({ variables: { id, input: { id, ...input } } });
+    updateMutation({ variables: { id, input: { ...input } } });
   };
 
   const deleteReview = (id: string) => {

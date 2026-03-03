@@ -21,7 +21,7 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingReview, setEditingReview] = useState<any | null>(null)
-  const [newReview, setNewReview] = useState({ title: '', content: '', rating: 5 })
+  const [newReview, setNewReview] = useState({ content: '', rating: 5 })
 
   const restaurantReviews = reviews.filter((r: any) => String(r.restaurantId) === String(restaurantId))
   const userReview = restaurantReviews.find((r: any) => String(r.userId) === String(user?.id))
@@ -33,10 +33,10 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
   const handleOpenModal = (review?: any) => {
     if (review) {
       setEditingReview(review)
-      setNewReview({ title: '', content: review.comment, rating: review.rating })
+      setNewReview({ content: review.comment, rating: review.rating })
     } else {
       setEditingReview(null)
-      setNewReview({ title: '', content: '', rating: 5 })
+      setNewReview({ content: '', rating: 5 })
     }
     setIsModalOpen(true)
   }

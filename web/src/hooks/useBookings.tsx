@@ -96,7 +96,7 @@ export function useBookings(restaurantId: string) {
   };
 
   const updateBooking = (id: string, input: { status?: string; people?: number; time?: string }) => {
-    updateMutation({ variables: { id, input: { id, ...input } } });
+    updateMutation({ variables: { id, input: { ...input } } });
   };
 
   const deleteBooking = (id: string) => {
