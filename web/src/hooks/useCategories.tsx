@@ -98,14 +98,14 @@ export function useCategories(restaurantId: string) {
 
   // --- CREAR ---
   const [createMutation] = useMutation(CREATE_CATEGORY, {
-    refetchQueries: [{ query: GET_CATEGORIES }], // Actualiza la lista automáticamente
+    refetchQueries: [{ query: GET_CATEGORIES, variables: { restaurantId } }],
     onCompleted: () => addToast("Categoría creada exitosamente", "success"),
     onError: (err) => addToast(err.message, "error"),
   });
 
   // --- ELIMINAR ---
   const [deleteMutation] = useMutation(DELETE_CATEGORY, {
-    refetchQueries: [{ query: GET_CATEGORIES }], // O usa update() de caché para ser más pro
+    refetchQueries: [{ query: GET_CATEGORIES, variables: { restaurantId } }],
     onCompleted: () => addToast("Categoría eliminada", "info"),
     onError: (err) => addToast(err.message, "error"),
   });

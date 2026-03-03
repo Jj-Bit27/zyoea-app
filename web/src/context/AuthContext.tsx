@@ -32,8 +32,9 @@ if (typeof window !== 'undefined') {
 // --- 3. Acciones de Autenticación ---
 
 export const login = async (email: string, password: string) => {
-  // SIMULACIÓN DE API
-  // Aquí harías tu fetch('/api/auth/login', ...)
+  // TODO: Replace this simulated auth with real backend GraphQL mutation (login).
+  // Example: use Apollo Client to call the `login` mutation with email and password,
+  // then store the returned accessToken and user in state and localStorage.
   
   return new Promise<void>((resolve, reject) => {
     setTimeout(() => {

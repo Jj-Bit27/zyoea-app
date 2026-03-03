@@ -7,7 +7,7 @@ export function getApolloClient() {
   if (!client || typeof window === "undefined") {
     client = new ApolloClient({
       link: new HttpLink({
-        uri: "http://localhost:8080/query",
+        uri: import.meta.env.PUBLIC_API_URL || "http://localhost:8080/query",
       }),
       cache: new InMemoryCache(),
     });

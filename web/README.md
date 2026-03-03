@@ -1,46 +1,76 @@
-# Astro Starter Kit: Basics
+# Zyoea Web — Astro + React Frontend
 
-```sh
-npm create astro@latest -- --template basics
+## Overview
+
+The frontend is an Astro 5 application using React islands for interactive components. It communicates with the backend via Apollo Client (GraphQL).
+
+## Running the Web App
+
+```bash
+cp .env.example .env   # fill in your values
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+The app will be available at `http://localhost:4321`.
 
-## 🚀 Project Structure
+## Environment Variables
 
-Inside of your Astro project, you'll see the following folders and files:
+Create a `.env` file in the `web/` directory (see `.env.example`):
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+| Variable         | Description                                                      |
+|------------------|------------------------------------------------------------------|
+| `PUBLIC_API_URL` | GraphQL API URL (default: `http://localhost:8080/query`)         |
+
+## Project Structure
+
+```
+web/src/
+├── assets/         # Static assets (images, fonts)
+├── components/     # Reusable UI components (Astro + React)
+│   └── custom/     # Custom components (Toast, etc.)
+├── context/        # Global state via Nano Stores
+│   ├── AuthContext.tsx    # User authentication state
+│   ├── OrderContext.tsx   # Shopping cart state
+│   └── ThemeContext.tsx   # UI theme state
+├── hooks/          # Apollo GraphQL hooks per domain
+│   ├── useRestaurants.tsx
+│   ├── useCategories.tsx
+│   ├── useProducts.tsx
+│   ├── useOrders.tsx
+│   ├── useBookings.tsx
+│   ├── useEmployees.tsx
+│   ├── useTables.tsx
+│   ├── useReviews.tsx
+│   └── usePayments.tsx
+├── layouts/        # Astro layout components
+├── libs/           # Shared utilities (Apollo client setup)
+├── pages/          # Astro page routes
+├── styles/         # Global styles (TailwindCSS)
+└── types/          # TypeScript interfaces
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## Component Architecture
 
-## 🧞 Commands
+### Astro Islands
 
-All commands are run from the root of the project, from a terminal:
+Astro renders pages as static HTML by default. React components are used as interactive "islands" with `client:load`, `client:visible`, or `client:idle` directives, minimizing JavaScript sent to the browser.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+### State Management
 
-## 👀 Want to learn more?
+Global state is managed with [Nano Stores](https://github.com/nanostores/nanostores):
+- **AuthContext** — current user session (persisted in `localStorage`)
+- **OrderContext** — shopping cart (persisted in `localStorage`)
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### Data Fetching
+
+Each domain has a dedicated React hook in `src/hooks/` that wraps Apollo Client queries and mutations, exposing a simple CRUD interface to components.
+
+## Commands
+
+| Command             | Action                                 |
+|---------------------|----------------------------------------|
+| `npm run dev`       | Start dev server at `localhost:4321`   |
+| `npm run build`     | Build production site to `./dist/`     |
+| `npm run preview`   | Preview production build locally       |
+| `npm run astro ...` | Run Astro CLI commands                 |

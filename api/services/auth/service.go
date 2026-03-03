@@ -77,9 +77,10 @@ func (s *Service) Register(ctx context.Context, input model.RegisterInput) (*mod
 		return nil, fmt.Errorf("error DB: %w", err)
 	}
 
-	// TODO: Enviar Email (usar goroutine)
-	// go sendVerificationEmail(u.Email, verificationToken)
 	dbID, err := strconv.Atoi(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error al convertir ID de usuario: %w", err)
+	}
 
 	// F. Generar JWT
 	token, _ := s.generateJWT(dbID, *u.Role, 0)
@@ -122,6 +123,9 @@ func (s *Service) Login(ctx context.Context, input model.LoginInput) (*model.Aut
 
 	// D. Generar Token
 	dbID, err := strconv.Atoi(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error al convertir ID de usuario: %w", err)
+	}
 	restID := 0
 	if input.Restaurant != nil {
 		restID = *input.Restaurant

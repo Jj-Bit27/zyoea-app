@@ -118,14 +118,14 @@ export function useProducts(restaurantId: string) {
 
   // --- CREAR ---
   const [createMutation] = useMutation(CREATE_PRODUCT, {
-    refetchQueries: [{ query: GET_PRODUCTS }], // Actualiza la lista automáticamente
+    refetchQueries: [{ query: GET_PRODUCTS, variables: { restaurantId } }],
     onCompleted: () => addToast("Producto creado exitosamente", "success"),
     onError: (err) => addToast(err.message, "error"),
   });
 
   // --- ELIMINAR ---
   const [deleteMutation] = useMutation(DELETE_PRODUCT, {
-    refetchQueries: [{ query: GET_PRODUCTS }], // O usa update() de caché para ser más pro
+    refetchQueries: [{ query: GET_PRODUCTS, variables: { restaurantId } }],
     onCompleted: () => addToast("Producto eliminado", "info"),
     onError: (err) => addToast(err.message, "error"),
   });

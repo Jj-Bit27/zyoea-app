@@ -110,7 +110,7 @@ export function useRestaurantById(id: string) {
   const { data, loading, error } = useQuery<RestaurantByIdData>(
     GET_RESTAURANT,
     {
-      variables: { id: parseInt(id) },
+      variables: { id },
       skip: !id, // Evita ejecutar la consulta si no hay ID
     },
   );
