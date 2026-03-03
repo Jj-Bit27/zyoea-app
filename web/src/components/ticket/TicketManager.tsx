@@ -90,7 +90,7 @@ function TicketManagerContent() {
         title="Detalle del Ticket"
         size="md"
       >
-        {selectedTicket && (
+        {selectedPayment && (
           <div className="overflow-hidden rounded-lg shadow-sm">
                         {/* Payment Header */}
             <div className="bg-primary px-4 py-6 text-center text-primary-foreground">

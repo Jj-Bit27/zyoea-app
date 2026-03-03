@@ -13,6 +13,8 @@ export default function PaymentFlow() {
   const { items, restaurantId, total, clearOrder } = useOrder()
   const { user } = useAuth()
   const { showToast } = useToast()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [isComplete, setIsComplete] = useState(false)
   const { restaurant } = useRestaurantById(restaurantId || '')
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null)
