@@ -5,98 +5,54 @@ import { Input } from "../custom/Input";
 import { Card, CardContent } from "../custom/Card";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../custom/Modal";
 import { Badge } from "../custom/Badge";
-import { addToast } from "../custom/Toast"; // Feedback global
+import { Spinner } from "../custom/Spinner";
+import { addToast } from "../custom/Toast";
+import { useOrders } from "../../hooks/useOrders";
+import { useAuth } from "../../context/AuthContext";
+import { ApolloWrapper } from "../ApolloWrapper";
 
-interface CashPayment {
-  id: string;
-  orderId: string;
-  table: string;
-  total: number;
-  items: { name: string; quantity: number; price: number }[];
-  status: "pendiente" | "completado";
-  receivedAmount?: number;
-  change?: number;
-}
+function PaymentsManagerContent() {
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId || "";
+  const { orders, loading, error, updateOrder } = useOrders(restaurantId);
 
-const initialPayments: CashPayment[] = [
-  {
-    id: "1",
-    orderId: "ORD-001",
-    table: "Mesa 3",
-    total: 245,
-    items: [
-      { name: "Filete Mignon", quantity: 1, price: 180 },
-      { name: "Limonada", quantity: 2, price: 45 },
-      { name: "Tiramisú", quantity: 1, price: 20 },
-    ],
-    status: "pendiente",
-  },
-  {
-    id: "2",
-    orderId: "ORD-002",
-    table: "Mesa 7",
-    total: 380,
-    items: [
-      { name: "Pasta Alfredo", quantity: 2, price: 165 },
-      { name: "Ensalada César", quantity: 1, price: 50 },
-    ],
-    status: "pendiente",
-  },
-  {
-    id: "3",
-    orderId: "ORD-003",
-    table: "Mesa 1",
-    total: 120,
-    items: [
-      { name: "Bruschetta", quantity: 2, price: 60 },
-    ],
-    status: "completado",
-    receivedAmount: 150,
-    change: 30,
-  },
-];
-
-export function PaymentsManager() {
-  const [payments, setPayments] = useState<CashPayment[]>(initialPayments);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState<CashPayment | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [receivedAmount, setReceivedAmount] = useState("");
 
-  const pendingPayments = payments.filter((p) => p.status === "pendiente");
-  const completedPayments = payments.filter((p) => p.status === "completado");
-
-  const filteredPending = pendingPayments.filter(
-    (p) =>
-      p.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.table.toLowerCase().includes(searchTerm.toLowerCase())
+  if (!restaurantId) return (
+    <div className="p-6 bg-muted rounded-lg text-center">
+      <p className="text-muted-foreground">No hay restaurante asociado a tu cuenta.</p>
+    </div>
   );
 
-  const handleOpenPayment = (payment: CashPayment) => {
-    setSelectedPayment(payment);
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
+
+  const pendingOrders = orders.filter((o: any) => !o.paid);
+  const completedOrders = orders.filter((o: any) => o.paid);
+
+  const filteredPending = pendingOrders.filter((o: any) =>
+    String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (o.tableId && String(o.tableId).includes(searchTerm))
+  );
+
+  const handleOpenPayment = (order: any) => {
+    setSelectedOrder(order);
     setReceivedAmount("");
     setIsModalOpen(true);
   };
 
   const handleProcessPayment = () => {
-    if (!selectedPayment) return;
-
+    if (!selectedOrder) return;
     const received = parseFloat(receivedAmount) || 0;
-    if (received < selectedPayment.total) {
+    if (received < selectedOrder.total) {
       addToast("El monto recibido es insuficiente", "error");
       return;
     }
-
-    const change = received - selectedPayment.total;
-
-    setPayments(
-      payments.map((p) =>
-        p.id === selectedPayment.id
-          ? { ...p, status: "completado" as const, receivedAmount: received, change }
-          : p
-      )
-    );
-
+    const change = received - selectedOrder.total;
+    updateOrder(selectedOrder.id, "entregado");
     addToast(`Pago procesado. Cambio: $${change.toFixed(2)}`, "success");
     setIsModalOpen(false);
   };
@@ -110,100 +66,67 @@ export function PaymentsManager() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-warning/20 rounded-lg text-warning">
-                <FiClock size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{pendingPayments.length}</p>
-                <p className="text-sm text-muted-foreground">Pagos pendientes</p>
-              </div>
+        <Card><CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-warning/20 rounded-lg text-warning"><FiClock size={24} /></div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{pendingOrders.length}</p>
+              <p className="text-sm text-muted-foreground">Pagos pendientes</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-success/20 rounded-lg text-success">
-                <FiCheck size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{completedPayments.length}</p>
-                <p className="text-sm text-muted-foreground">Completados hoy</p>
-              </div>
+          </div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-success/20 rounded-lg text-success"><FiCheck size={24} /></div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{completedOrders.length}</p>
+              <p className="text-sm text-muted-foreground">Completados</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/20 rounded-lg text-primary">
-                <FiDollarSign size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  ${pendingPayments.reduce((sum, p) => sum + p.total, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Total pendiente</p>
-              </div>
+          </div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary/20 rounded-lg text-primary"><FiDollarSign size={24} /></div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">
+                ${pendingOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0).toFixed(2)}
+              </p>
+              <p className="text-sm text-muted-foreground">Total pendiente</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent></Card>
       </div>
 
       {/* Search */}
       <div className="relative max-w-md">
         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-        <Input
-          placeholder="Buscar por orden o mesa..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+        <Input placeholder="Buscar por orden o mesa..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
       </div>
 
       {/* Pending Payments */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">Pagos Pendientes</h2>
         {filteredPending.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <FiCheck size={48} className="mx-auto text-success mb-4" />
-              <p className="text-lg font-medium text-foreground">No hay pagos pendientes</p>
-              <p className="text-muted-foreground">Todos los pagos en efectivo han sido procesados</p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="p-8 text-center">
+            <FiCheck size={48} className="mx-auto text-success mb-4" />
+            <p className="text-lg font-medium text-foreground">No hay pagos pendientes</p>
+            <p className="text-muted-foreground">Todos los pagos han sido procesados</p>
+          </CardContent></Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPending.map((payment) => (
-              <Card key={payment.id} className="border-warning border">
+            {filteredPending.map((order: any) => (
+              <Card key={order.id} className="border-warning border">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-semibold text-foreground">{payment.orderId}</h3>
-                      <p className="text-sm text-muted-foreground">{payment.table}</p>
+                      <h3 className="font-semibold text-foreground">#{order.id}</h3>
+                      <p className="text-sm text-muted-foreground">{order.user_name} — Mesa {order.tableId || "—"}</p>
                     </div>
                     <Badge variant="warning">Pendiente</Badge>
                   </div>
-
-                  <div className="space-y-1 mb-4">
-                    {payment.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {item.quantity}x {item.name}
-                        </span>
-                        <span className="text-foreground">${item.price * item.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <p className="text-lg font-bold text-foreground">Total: ${payment.total}</p>
-                    <Button size="sm" onClick={() => handleOpenPayment(payment)}>
-                      Cobrar
-                    </Button>
+                    <p className="text-lg font-bold text-foreground">Total: ${order.total}</p>
+                    <Button size="sm" onClick={() => handleOpenPayment(order)}>Cobrar</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -212,82 +135,26 @@ export function PaymentsManager() {
         )}
       </div>
 
-      {/* Completed Payments */}
-      {completedPayments.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Completados Hoy</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {completedPayments.map((payment) => (
-              <Card key={payment.id} className="opacity-75 bg-muted/20">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{payment.orderId}</h3>
-                      <p className="text-sm text-muted-foreground">{payment.table}</p>
-                    </div>
-                    <Badge variant="success">Completado</Badge>
-                  </div>
-
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="text-foreground">${payment.total}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Recibido</span>
-                      <span className="text-foreground">${payment.receivedAmount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Cambio</span>
-                      <span className="text-success font-medium">${payment.change}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Payment Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <ModalHeader onClose={() => setIsModalOpen(false)}>
-          Procesar Pago - {selectedPayment?.orderId}
+          Procesar Pago - #{selectedOrder?.id}
         </ModalHeader>
         <ModalBody>
-          {selectedPayment && (
+          {selectedOrder && (
             <div className="space-y-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">{selectedPayment.table}</p>
-                <div className="space-y-1">
-                  {selectedPayment.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-foreground">
-                        {item.quantity}x {item.name}
-                      </span>
-                      <span className="text-foreground">${item.price * item.quantity}</span>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-sm text-muted-foreground mb-2">Mesa {selectedOrder.tableId || "—"} — {selectedOrder.user_name}</p>
                 <div className="mt-3 pt-3 border-t border-border flex justify-between">
                   <span className="font-semibold text-foreground">Total</span>
-                  <span className="text-xl font-bold text-primary">${selectedPayment.total}</span>
+                  <span className="text-xl font-bold text-primary">${selectedOrder.total}</span>
                 </div>
               </div>
-
-              <Input
-                label="Monto recibido"
-                type="number"
-                value={receivedAmount}
-                onChange={(e) => setReceivedAmount(e.target.value)}
-                placeholder="0.00"
-                autoFocus
-              />
-
-              {receivedAmount && parseFloat(receivedAmount) >= selectedPayment.total && (
-                <div className="p-4 bg-success/10 rounded-lg animate-in fade-in zoom-in-95 duration-200">
+              <Input label="Monto recibido" type="number" value={receivedAmount} onChange={(e) => setReceivedAmount(e.target.value)} placeholder="0.00" autoFocus />
+              {receivedAmount && parseFloat(receivedAmount) >= selectedOrder.total && (
+                <div className="p-4 bg-success/10 rounded-lg">
                   <p className="text-lg font-semibold text-success text-center">
-                    Cambio: ${(parseFloat(receivedAmount) - selectedPayment.total).toFixed(2)}
+                    Cambio: ${(parseFloat(receivedAmount) - selectedOrder.total).toFixed(2)}
                   </p>
                 </div>
               )}
@@ -295,14 +162,20 @@ export function PaymentsManager() {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleProcessPayment} disabled={!receivedAmount || parseFloat(receivedAmount) < (selectedPayment?.total || 0)}>
+          <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+          <Button onClick={handleProcessPayment} disabled={!receivedAmount || parseFloat(receivedAmount) < (selectedOrder?.total || 0)}>
             Confirmar pago
           </Button>
         </ModalFooter>
       </Modal>
     </div>
+  );
+}
+
+export function PaymentsManager() {
+  return (
+    <ApolloWrapper>
+      <PaymentsManagerContent />
+    </ApolloWrapper>
   );
 }

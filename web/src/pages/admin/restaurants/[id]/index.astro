@@ -2,6 +2,8 @@
 import AdminLayout from "../../../../layouts/AdminLayout.astro";
 import RestauranteDetalles from "../../../../components/admin/RestaurantDetalles";
 
+export const prerender = false;
+
 // Obtenemos el ID de la URL
 const { id } = Astro.params;
 

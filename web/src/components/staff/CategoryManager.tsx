@@ -5,45 +5,39 @@ import { Input } from "../custom/Input";
 import { Card, CardContent } from "../custom/Card";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../custom/Modal";
 import { Textarea } from "../custom/Textarea";
-import { addToast } from "../custom/Toast"; // ¡Usamos el sistema de notificaciones global!
+import { Spinner } from "../custom/Spinner";
+import { addToast } from "../custom/Toast";
+import { useCategories } from "../../hooks/useCategories";
+import { useAuth } from "../../context/AuthContext";
+import { ApolloWrapper } from "../ApolloWrapper";
 
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  productCount: number;
-  image?: string;
-}
+function CategoriesManagerContent() {
+  const { user } = useAuth();
+  const restaurantId = user?.restaurantId || "";
+  const { categories, loading, error, createCategory, updateCategory, deleteCategory } = useCategories(restaurantId);
 
-const initialCategories: Category[] = [
-  { id: "1", name: "Entradas", description: "Aperitivos y entradas para comenzar", productCount: 8 },
-  { id: "2", name: "Platos fuertes", description: "Platos principales del menú", productCount: 15 },
-  { id: "3", name: "Postres", description: "Deliciosos postres para terminar", productCount: 6 },
-  { id: "4", name: "Bebidas", description: "Refrescos, jugos y bebidas frías", productCount: 12 },
-  { id: "5", name: "Bebidas calientes", description: "Café, té y más", productCount: 8 },
-  { id: "6", name: "Ensaladas", description: "Ensaladas frescas y saludables", productCount: 5 },
-];
-
-export function CategoriesManager() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  
-  // Estado del formulario
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-  });
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [formData, setFormData] = useState({ name: "", description: "" });
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+  if (!restaurantId) return (
+    <div className="p-6 bg-muted rounded-lg text-center">
+      <p className="text-muted-foreground">No hay restaurante asociado a tu cuenta.</p>
+    </div>
   );
 
-  const handleOpenModal = (category?: Category) => {
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
+
+  const filteredCategories = categories.filter((cat: any) =>
+    cat.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleOpenModal = (category?: any) => {
     if (category) {
       setEditingCategory(category);
-      setFormData({ name: category.name, description: category.description });
+      setFormData({ name: category.name, description: "" });
     } else {
       setEditingCategory(null);
       setFormData({ name: "", description: "" });
@@ -52,36 +46,17 @@ export function CategoriesManager() {
   };
 
   const handleSave = () => {
-    // Validación simple
     if (!formData.name.trim()) {
       addToast("El nombre es requerido", "error");
       return;
     }
-
+    const input = { restaurant: parseInt(restaurantId), name: formData.name };
     if (editingCategory) {
-      setCategories(
-        categories.map((cat) =>
-          cat.id === editingCategory.id ? { ...cat, ...formData } : cat
-        )
-      );
-      addToast("Categoría actualizada correctamente", "success");
+      updateCategory(editingCategory.id, input);
     } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        ...formData,
-        productCount: 0,
-      };
-      setCategories([...categories, newCategory]);
-      addToast("Categoría creada correctamente", "success");
+      createCategory(input);
     }
     setIsModalOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar esta categoría?")) {
-      setCategories(categories.filter((cat) => cat.id !== id));
-      addToast("Categoría eliminada", "info");
-    }
   };
 
   return (
@@ -110,7 +85,7 @@ export function CategoriesManager() {
 
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCategories.map((category) => (
+        {filteredCategories.map((category: any) => (
           <Card key={category.id} className="group hover:shadow-lg transition-shadow">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -122,7 +97,7 @@ export function CategoriesManager() {
                     <h3 className="font-semibold text-foreground">{category.name}</h3>
                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                       <FiPackage size={14} />
-                      {category.productCount} productos
+                      Restaurante #{category.restaurantId}
                     </p>
                   </div>
                 </div>
@@ -130,26 +105,21 @@ export function CategoriesManager() {
                   <Button variant="ghost" size="sm" onClick={() => handleOpenModal(category)}>
                     <FiEdit2 size={16} />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(category.id)}>
+                  <Button variant="ghost" size="sm" onClick={() => deleteCategory(category.id)}>
                     <FiTrash2 size={16} />
                   </Button>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                {category.description}
-              </p>
-              
-              {/* Reemplazo de Link por <a> tag estándar de Astro */}
-              <a
-                href={`/staff/categorias/${category.id}`}
-                className="inline-block mt-4 text-sm text-primary hover:underline"
-              >
-                Ver productos
-              </a>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {filteredCategories.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          No se encontraron categorías.
+        </div>
+      )}
 
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -165,7 +135,7 @@ export function CategoriesManager() {
               placeholder="Nombre de la categoría"
             />
             <Textarea
-              label="Descripción"
+              label="Descripción (opcional)"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Descripción de la categoría"
@@ -174,14 +144,20 @@ export function CategoriesManager() {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-            Cancelar
-          </Button>
+          <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
           <Button onClick={handleSave}>
             {editingCategory ? "Guardar cambios" : "Crear categoría"}
           </Button>
         </ModalFooter>
       </Modal>
     </div>
+  );
+}
+
+export function CategoriesManager() {
+  return (
+    <ApolloWrapper>
+      <CategoriesManagerContent />
+    </ApolloWrapper>
   );
 }

@@ -1,4 +1,4 @@
-scalara Time
+scalar Time
 
 type Employee {
   id: ID!

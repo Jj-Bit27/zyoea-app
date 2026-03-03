@@ -80,6 +80,9 @@ func (s *Service) Register(ctx context.Context, input model.RegisterInput) (*mod
 	// TODO: Enviar Email (usar goroutine)
 	// go sendVerificationEmail(u.Email, verificationToken)
 	dbID, err := strconv.Atoi(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error convirtiendo ID de usuario: %w", err)
+	}
 
 	// F. Generar JWT
 	token, _ := s.generateJWT(dbID, *u.Role, 0)

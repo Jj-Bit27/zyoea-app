@@ -21,23 +21,28 @@ const currentPath = Astro.url.pathname;
 
     <script is:inline>
       (function () {
-        try {
-          const storedTheme = localStorage.getItem("theme");
-          const systemTheme = window.matchMedia(
-            "(prefers-color-scheme: dark)",
-          ).matches;
-          if (
-            storedTheme === "dark" ||
-            (!storedTheme && systemTheme) ||
-            (storedTheme === "system" && systemTheme)
-          ) {
-            document.documentElement.classList.add("dark");
-          } else {
-            document.documentElement.classList.remove("dark");
+        function applyTheme() {
+          try {
+            const storedTheme = localStorage.getItem("theme");
+            const systemTheme = window.matchMedia(
+              "(prefers-color-scheme: dark)",
+            ).matches;
+            if (
+              storedTheme === "dark" ||
+              (!storedTheme && systemTheme) ||
+              (storedTheme === "system" && systemTheme)
+            ) {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
+          } catch (e) {
+            console.error(e);
           }
-        } catch (e) {
-          console.error(e);
         }
+        applyTheme();
+        document.addEventListener("astro:after-swap", applyTheme);
+        document.addEventListener("astro:page-load", applyTheme);
       })();
     </script>
   </head>
